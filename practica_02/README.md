@@ -6,7 +6,7 @@ Implementar un módulo de software para el manejo de retardos no bloqueantes y u
 
 ---
 
-## 📋 Consigna
+## Consigna
 
 La práctica se divide en tres partes:
 
