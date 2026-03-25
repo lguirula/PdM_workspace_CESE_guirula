@@ -68,6 +68,7 @@ void SecuenciaLed(delay_t * delay, const uint32_t * tiempos, uint8_t cantidad)
 {
     static uint8_t indiceTiempo = 0;
     static bool estadoLed = false;
+    static uint8_t contadorCambios = 0;
 
     if (delayRead(delay))
     {
@@ -83,11 +84,12 @@ void SecuenciaLed(delay_t * delay, const uint32_t * tiempos, uint8_t cantidad)
          */
 
         HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin,estadoLed ? GPIO_PIN_SET : GPIO_PIN_RESET);
-
-        // avanzar al siguiente tiempo SOLO cuando pasa a OFF
-        if (!estadoLed)
+        contadorCambios++;
+        //// 2 cambios = 1 ciclo completo (ON + OFF)
+        if (contadorCambios >= 2)
         {
-            indiceTiempo++;
+        	contadorCambios = 0;
+        	indiceTiempo++;
 
             if (indiceTiempo >= cantidad)
             {
