@@ -7,6 +7,7 @@ Lucía Guirula, Bioingeniera.
 
 ## Contenido
 - Practica 2: retardos no bloqueantes.
+- Practica 3:  Modularizacion y retardos no bloqueantes
 
 
 ## Entorno
