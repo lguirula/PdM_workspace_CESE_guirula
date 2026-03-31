@@ -1,6 +1,6 @@
-# 🧪 Trabajo Práctico - Retardos No Bloqueantes y Anti-Rebote
+# Practica 4 - Retardos No Bloqueantes y Anti-Rebote
 
-## 📌 Descripción
+## Descripción
 
 Este proyecto fue desarrollado sobre la placa **NUCLEO-F446RE** utilizando **STM32CubeIDE**.
 
@@ -12,7 +12,7 @@ El objetivo es implementar:
 
 ---
 
-## ⚙️ Estructura del proyecto
+## Estructura del proyecto
 ```text
 Core/
 Drivers/
@@ -41,7 +41,7 @@ typedef struct{
    tick_t duration;
    bool_t running;
 } delay_t;
-
+```
 ##  Módulo API_debounce
 
 Este módulo implementa una **máquina de estados finitos (FSM)** para eliminar el efecto de rebote mecánico del pulsador de la placa.
