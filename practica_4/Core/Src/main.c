@@ -19,7 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "API_delay.h"
-#include "API_debounce.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -77,6 +77,7 @@ BUTTON_RISING,
 
 
 #ifdef EJERCICIO_2
+#include "API_debounce.h"
 #define TIEMPO_LENTO  500U
 #define TIEMPO_RAPIDO 100U
 #endif
