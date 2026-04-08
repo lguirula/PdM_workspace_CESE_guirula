@@ -212,14 +212,4 @@ LED TOGGLE
 
 ---
 
-## Conclusión
 
-Esta práctica integra conceptos fundamentales de sistemas embebidos:
-
-* Programación modular
-* Uso de la HAL de STM32
-* Máquinas de estados finitas (FSM)
-* Comunicación UART
-* Manejo de strings en C
-
-Permite construir interfaces simples de control mediante terminal serie, una herramienta muy utilizada en desarrollo y debugging.
