@@ -9,6 +9,7 @@ Lucía Guirula, Bioingeniera.
 - Practica 2: retardos no bloqueantes.
 - Practica 3:  Modularizacion y retardos no bloqueantes.
 - Practica 4: Maquina de estados y antirebote por software.
+- Practica 5: UART y Parser de Comandos con MEF.
 
 
 ## Entorno
