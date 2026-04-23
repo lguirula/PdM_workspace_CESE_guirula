@@ -170,3 +170,13 @@ El sistema está preparado para evolucionar hacia un esquema de control, por eje
 ## Autor
 
 Ing. Guirula Lucía
+
+---
+
+## Referencias
+
+
+* https://makersportal.com/blog/2020/6/4/mps20n0040d-pressure-sensor-calibration-with-arduino#calibration=
+* https://github.com/bogde/HX711/tree/master
+* https://github.com/queuetue/Q2-HX711-Arduino-Library/tree/master
+* https://uelectronics.com/producto/mps20n0040d-s-modulo-sensor-de-presion-barometrica/?srsltid=AfmBOoqJwAjtkc8Hip1tc9DWRX5jAsPGLkzuSfvsGkYHUrQn_bdpibtd
