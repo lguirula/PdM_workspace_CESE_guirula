@@ -33,9 +33,11 @@ extern I2C_HandleTypeDef hi2c1;
 void FSM_App_Init(void) {
     estado_actual = ESTADO_INIT;
 
-
+    // Se inicializa el hardware una sola vez al inicio para asegurar
+    // que el sensor y el LCD estén en un estado conocido antes de operar.
+    // Esto evita lecturas inválidas en los primeros ciclos.
     delayInit(&timer_muestreo, TIEMPO_MUESTREO_MS);
-    API_LCD_Init(&hi2c1); // <-- Agregado
+    API_LCD_Init(&hi2c1);
     API_Sensor_Init(&mi_sensor, GPIOA, GPIO_PIN_7, GPIOA, GPIO_PIN_6);
     API_LCD_Clear();
     API_LCD_SendString("Inicializando");
@@ -51,19 +53,22 @@ void FSM_App_Update(void) {
 
         case ESTADO_INIT:
         	// 1. Inicializar Hardware
-        	API_LCD_Init(&hi2c1); // <-- Agregado
+        	API_LCD_Init(&hi2c1);
         	API_Sensor_Init(&mi_sensor, GPIOA, GPIO_PIN_7, GPIOA, GPIO_PIN_6);
-        	// Ponemos un valor de sensibilidad por defecto (el que calculamos)
+
 
         	HAL_Delay(1000);
 
-        	// 1. Tara (Cero mmHg) - Asegúrate de no tocar el sensor
+        	// Se realiza la tara para eliminar el offset del sensor.
+        	// Esto permite que todas las mediciones posteriores sean relativas
+        	// al punto de referencia (0 mmHg), mejorando la precisión.
         	API_LCD_Clear();
         	API_LCD_SendString("Calibrando Cero");
-        	API_Sensor_Calibrate(&mi_sensor); // Esta función ya resta el offset
+        	API_Sensor_Calibrate(&mi_sensor);
 
 
-        	// 2. Pasamos al estado de esperar los 80mmHg
+        	// Se introduce una espera para permitir al usuario aplicar una presión conocida.
+        	// Esta referencia es necesaria para calcular la sensibilidad del sensor.
         	API_LCD_Clear();
         	API_LCD_SendString("Poner 80 mmHg");
         	API_LCD_SetCursor(1,0);
@@ -74,16 +79,9 @@ void FSM_App_Update(void) {
             break;
 
 		case ESTADO_CALIBRATE_SPAN:
-			/*if (API_Sensor_Calibrate_Sensitivity(&mi_sensor, 80.0f) == SENSOR_OK) {
-			        API_LCD_Clear();
-			        API_LCD_SendString("Calibrado OK!");
-			        HAL_Delay(1000);
-			        delayInit(&timer_muestreo, TIEMPO_MUESTREO_MS);
-			        estado_actual = ESTADO_IDLE;
-			} else {
-			        // Si entra acá es porque el RAW no cambió al inflar
-			        estado_actual = ESTADO_ERROR;
-			    }*/
+			// Se calcula la pendiente de conversión RAW→mmHg utilizando un punto conocido.
+			// Esto permite linealizar la medición sin necesidad de conocer
+			// los parámetros internos del sensor.
 			if (API_Sensor_Calibrate_Sensitivity(&mi_sensor, 80.0f) == SENSOR_OK) {
 			        API_LCD_Clear();
 			        API_LCD_SendString("Calibrado OK!");
@@ -91,53 +89,48 @@ void FSM_App_Update(void) {
 			        API_LCD_Clear();
 			        API_LCD_SendString("Error: Usando Def");
 			        // Seteamos la que calculamos antes por default para poder ver algo
-			        mi_sensor.sensitivity = 0.00096f;
+			        mi_sensor.sensitivity = 0.00001f;
 			    }
-			char buffer[16];
-			snprintf(buffer, sizeof(buffer), "S:%.6f", mi_sensor.sensitivity);
-			API_LCD_Clear();
-			API_LCD_SendString(buffer);
-			HAL_Delay(2000);
+
 			HAL_Delay(1000);
 			delayInit(&timer_muestreo, TIEMPO_MUESTREO_MS);
 			estado_actual = ESTADO_IDLE;
 			break;
 
 		case ESTADO_IDLE:
-
+			// Se utiliza un temporizador no bloqueante para definir la frecuencia de muestreo.
+			// Esto evita saturar el sensor y permite mantener la FSM responsiva.
             if (delayRead(&timer_muestreo)) {
                 estado_actual = ESTADO_READ_SENSOR;
             }
             break;
 
         case ESTADO_READ_SENSOR:
-        	// 1. Intentamos una lectura simple (sin promedios pesados por ahora)
-        	    sensor_status_t status = API_Sensor_ReadRaw(&mi_sensor, &valor_raw);
 
-        	    if (status == SENSOR_OK) {
-        	        int32_t valor_neto = valor_raw - mi_sensor.offset;
-        	        presion_mmhg = (float)valor_neto * mi_sensor.sensitivity ;
-        	    } else {
-        	        // Para debug:
+
+        	if (API_Sensor_ReadPressure(&mi_sensor, &valor_raw, &presion_mmhg) != SENSOR_OK) {
         	        presion_mmhg = -999;
         	    }
-        	    estado_actual = ESTADO_REPORT;
+
+         estado_actual = ESTADO_REPORT;
+         break;
+
             break;
 
         case ESTADO_REPORT:
-        	//Visualizar_Datos(presion_mmhg, valor_raw);
+        	// Se separa la visualización de la adquisición para evitar bloquear
+        	// la lectura del sensor con operaciones lentas como el LCD.
         	snprintf(buffer, sizeof(buffer), "R:%ld", valor_raw);
-        	API_LCD_SetCursor(0,0);
-        	API_LCD_SendString(buffer);
-
+        	API_LCD_SetCursor(0,0); API_LCD_SendString(buffer);
         	snprintf(buffer, sizeof(buffer), "P:%.2f", presion_mmhg);
-        	API_LCD_SetCursor(1,0);
-        	API_LCD_SendString(buffer);
+        	API_LCD_SetCursor(1,0); API_LCD_SendString(buffer);
         	estado_actual = ESTADO_IDLE;
 
             break;
 
         case ESTADO_ERROR:
+        	// Estado de seguridad que permite detectar fallas del sensor
+        	// y evitar el uso de datos inválidos en el sistema.
         	Visualizar_Error("FALLA SENSOR");
             break;
 

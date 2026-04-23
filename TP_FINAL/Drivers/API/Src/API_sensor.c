@@ -130,15 +130,16 @@ void API_Sensor_Calibrate(hx710_t *sensor) {
  * @return SENSOR_OK si la lectura fue exitosa,
  *         SENSOR_ERROR en caso de error.
  */
-sensor_status_t API_Sensor_ReadPressure(hx710_t *sensor, float *presion) {
-    int32_t raw;
-    if (sensor == NULL || presion == NULL) return SENSOR_ERROR;
-
-    if (API_Sensor_ReadRaw(sensor, &raw) != SENSOR_OK) {
+sensor_status_t API_Sensor_ReadPressure(hx710_t *sensor,int32_t *raw,float *presion) {
+    if (sensor == NULL || raw == NULL || presion == NULL) {
         return SENSOR_ERROR;
     }
 
-    int32_t neto = raw - sensor->offset;
+    if (API_Sensor_ReadRaw(sensor, raw) != SENSOR_OK) {
+        return SENSOR_ERROR;
+    }
+
+    int32_t neto = *raw - sensor->offset;
     *presion = neto * sensor->sensitivity;
 
     return SENSOR_OK;

@@ -41,6 +41,6 @@ sensor_status_t API_Sensor_ReadRaw(hx710_t *sensor, int32_t *value);
 void API_Sensor_Calibrate(hx710_t *sensor);
 sensor_status_t API_Sensor_Calibrate_Sensitivity(hx710_t *sensor, float presion_conocida);
 int32_t API_Sensor_GetValue(hx710_t *sensor, uint8_t muestras);
-sensor_status_t API_Sensor_ReadPressure(hx710_t *sensor, float *presion);
+sensor_status_t API_Sensor_ReadPressure(hx710_t *sensor,int32_t *raw,float *presion);
 
 #endif /*API_SENSOR_H_*/
