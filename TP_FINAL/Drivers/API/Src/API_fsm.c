@@ -120,9 +120,10 @@ void FSM_App_Update(void) {
         case ESTADO_REPORT:
         	// Se separa la visualización de la adquisición para evitar bloquear
         	// la lectura del sensor con operaciones lentas como el LCD.
+        	API_LCD_Clear();
         	snprintf(buffer, sizeof(buffer), "R:%ld", valor_raw);
         	API_LCD_SetCursor(0,0); API_LCD_SendString(buffer);
-        	snprintf(buffer, sizeof(buffer), "P:%.2f", presion_mmhg);
+        	snprintf(buffer, sizeof(buffer), "P:%.2f mmHg", presion_mmhg);
         	API_LCD_SetCursor(1,0); API_LCD_SendString(buffer);
         	estado_actual = ESTADO_IDLE;
 
