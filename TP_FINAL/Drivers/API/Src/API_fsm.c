@@ -13,6 +13,7 @@
 typedef enum {
 	ESTADO_INIT,
     ESTADO_IDLE,
+	ESTADO_CALIBRATE_SPAN,
     ESTADO_READ_SENSOR,
     ESTADO_PROCESS,
     ESTADO_REPORT,
@@ -36,26 +37,12 @@ void FSM_App_Init(void) {
     delayInit(&timer_muestreo, TIEMPO_MUESTREO_MS);
     API_LCD_Init(&hi2c1); // <-- Agregado
     API_Sensor_Init(&mi_sensor, GPIOA, GPIO_PIN_7, GPIOA, GPIO_PIN_6);
-    // Ponemos un valor de sensibilidad por defecto (el que calculamos)
-    mi_sensor.sensitivity = 0.000009612f;
     API_LCD_Clear();
-    API_LCD_SendString("Estabilizando...");
+    API_LCD_SendString("Inicializando");
 
-    // 1. Dale tiempo al sensor para que "despierte" (Vital para HX711/710)
-    HAL_Delay(1000);
-    // 2. Feedback visual inicial
-    API_LCD_Clear();
-    API_LCD_SendString("Calibrando...");
-
-    // 3. Autocalibración (Tara)
-    API_Sensor_Calibrate(&mi_sensor);
-
-    // 4. Configurar el timer de muestreo
     delayInit(&timer_muestreo, TIEMPO_MUESTREO_MS);
+    HAL_Delay(1000);
 
-    API_LCD_Clear();
-    API_LCD_SendString("Sistema Listo");
-    HAL_Delay(500);
 }
 
 void FSM_App_Update(void) {
@@ -67,28 +54,54 @@ void FSM_App_Update(void) {
         	API_LCD_Init(&hi2c1); // <-- Agregado
         	API_Sensor_Init(&mi_sensor, GPIOA, GPIO_PIN_7, GPIOA, GPIO_PIN_6);
         	// Ponemos un valor de sensibilidad por defecto (el que calculamos)
-        	mi_sensor.sensitivity = 0.000009612f;
-        	API_LCD_Clear();
-        	API_LCD_SendString("Estabilizando...");
 
-        	// 1. Dale tiempo al sensor para que "despierte" (Vital para HX711/710)
         	HAL_Delay(1000);
-        	// 2. Feedback visual inicial
+
+        	// 1. Tara (Cero mmHg) - Asegúrate de no tocar el sensor
         	API_LCD_Clear();
-        	API_LCD_SendString("Calibrando...");
+        	API_LCD_SendString("Calibrando Cero");
+        	API_Sensor_Calibrate(&mi_sensor); // Esta función ya resta el offset
 
-        	// 3. Autocalibración (Tara)
-        	API_Sensor_Calibrate(&mi_sensor);
 
-        	// 4. Configurar el timer de muestreo
-        	delayInit(&timer_muestreo, TIEMPO_MUESTREO_MS);
-
+        	// 2. Pasamos al estado de esperar los 80mmHg
         	API_LCD_Clear();
-        	API_LCD_SendString("Sistema Listo");
-        	HAL_Delay(500);
+        	API_LCD_SendString("Poner 80 mmHg");
+        	API_LCD_SetCursor(1,0);
+        	API_LCD_SendString("Tiene 5 seg...");
+        	HAL_Delay(5000); // Te damos 5 segundos para inflar
 
-        	estado_actual = ESTADO_IDLE;
+        	estado_actual = ESTADO_CALIBRATE_SPAN;
             break;
+
+		case ESTADO_CALIBRATE_SPAN:
+			/*if (API_Sensor_Calibrate_Sensitivity(&mi_sensor, 80.0f) == SENSOR_OK) {
+			        API_LCD_Clear();
+			        API_LCD_SendString("Calibrado OK!");
+			        HAL_Delay(1000);
+			        delayInit(&timer_muestreo, TIEMPO_MUESTREO_MS);
+			        estado_actual = ESTADO_IDLE;
+			} else {
+			        // Si entra acá es porque el RAW no cambió al inflar
+			        estado_actual = ESTADO_ERROR;
+			    }*/
+			if (API_Sensor_Calibrate_Sensitivity(&mi_sensor, 80.0f) == SENSOR_OK) {
+			        API_LCD_Clear();
+			        API_LCD_SendString("Calibrado OK!");
+			    } else {
+			        API_LCD_Clear();
+			        API_LCD_SendString("Error: Usando Def");
+			        // Seteamos la que calculamos antes por default para poder ver algo
+			        mi_sensor.sensitivity = 0.00096f;
+			    }
+			char buffer[16];
+			snprintf(buffer, sizeof(buffer), "S:%.6f", mi_sensor.sensitivity);
+			API_LCD_Clear();
+			API_LCD_SendString(buffer);
+			HAL_Delay(2000);
+			HAL_Delay(1000);
+			delayInit(&timer_muestreo, TIEMPO_MUESTREO_MS);
+			estado_actual = ESTADO_IDLE;
+			break;
 
 		case ESTADO_IDLE:
 
@@ -98,24 +111,29 @@ void FSM_App_Update(void) {
             break;
 
         case ESTADO_READ_SENSOR:
-        	valor_raw = API_Sensor_GetValue(&mi_sensor, 3);
-        	// Ejemplo de detección de error (Cable suelto)
-        	if (valor_raw == 0) {
-        		estado_actual = ESTADO_ERROR;
-        	} else {
-        		estado_actual = ESTADO_PROCESS;
-        	}
-            break;
+        	// 1. Intentamos una lectura simple (sin promedios pesados por ahora)
+        	    sensor_status_t status = API_Sensor_ReadRaw(&mi_sensor, &valor_raw);
 
-        case ESTADO_PROCESS:
-        	presion_mmhg = API_Sensor_To_mmHg(&mi_sensor, valor_raw);
-
-            estado_actual = ESTADO_REPORT;
+        	    if (status == SENSOR_OK) {
+        	        int32_t valor_neto = valor_raw - mi_sensor.offset;
+        	        presion_mmhg = (float)valor_neto * mi_sensor.sensitivity ;
+        	    } else {
+        	        // Para debug:
+        	        presion_mmhg = -999;
+        	    }
+        	    estado_actual = ESTADO_REPORT;
             break;
 
         case ESTADO_REPORT:
-        	Visualizar_Datos(presion_mmhg, valor_raw);
-            estado_actual = ESTADO_IDLE;
+        	//Visualizar_Datos(presion_mmhg, valor_raw);
+        	snprintf(buffer, sizeof(buffer), "R:%ld", valor_raw);
+        	API_LCD_SetCursor(0,0);
+        	API_LCD_SendString(buffer);
+
+        	snprintf(buffer, sizeof(buffer), "P:%.2f", presion_mmhg);
+        	API_LCD_SetCursor(1,0);
+        	API_LCD_SendString(buffer);
+        	estado_actual = ESTADO_IDLE;
 
             break;
 

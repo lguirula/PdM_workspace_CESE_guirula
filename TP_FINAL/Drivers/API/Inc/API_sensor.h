@@ -13,10 +13,9 @@
 #include <stdbool.h>
 /* --- DEFINES ----------------------------------------------------------------------------------------- */
 #define SENSOR_BITS 24
-#define VREF_MV          5000.0f    // Milivoltios
-#define ADC_MAX_COUNTS   16777216.0f // 2^24
+
 #define HX710_GAIN       128.0f
-#define KPA_TO_MMHG      7.50062f
+
 
 
 /* --- TIPOS DE DATOS ---------------------------------------------------------------------------------- */
@@ -27,7 +26,7 @@ typedef struct {
     uint16_t pin_data;
     int32_t offset;      // Para la autocalibración (tara)
     uint8_t gain_pulses; // 1 pulso = Ganancia 128 (Canal A)
-    int32_t sensitivity;
+    float sensitivity;
 } hx710_t;
 
 typedef enum {
@@ -40,6 +39,8 @@ typedef enum {
 void API_Sensor_Init(hx710_t *sensor, GPIO_TypeDef* p_clk, uint16_t clk, GPIO_TypeDef* p_data, uint16_t data);
 sensor_status_t API_Sensor_ReadRaw(hx710_t *sensor, int32_t *value);
 void API_Sensor_Calibrate(hx710_t *sensor);
+sensor_status_t API_Sensor_Calibrate_Sensitivity(hx710_t *sensor, float presion_conocida);
 int32_t API_Sensor_GetValue(hx710_t *sensor, uint8_t muestras);
+sensor_status_t API_Sensor_ReadPressure(hx710_t *sensor, float *presion);
 
 #endif /*API_SENSOR_H_*/
